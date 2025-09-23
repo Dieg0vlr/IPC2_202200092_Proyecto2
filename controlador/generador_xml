@@ -1,0 +1,77 @@
+from xml.dom import minidom
+
+class generador_xml:
+    def __init__(self, simulador):
+        self.sim = simulador
+
+    def agregar_texto(self,doc,parent, tag, text):
+        el = doc.createElement(tag)
+        el.appendChild(doc.createTextNode(str(text)))
+        parent.appendChild(el)
+
+    def generar_salida(self, ruta:str, lista_invernaderos):
+        doc = minidom.Document()
+        root = doc.createElement("datosSalida")
+        doc.appendChild(li)
+
+        # Recorrer invernaderos (TDA lista_simple)
+        for inv in lista_invernaderos.iterar():
+            inv_el = doc.createElement("invernadero")
+            inv_el.setAttribute("nombre", inv.nombre)
+            li.appendChild(inv_el)
+
+            lplanes = doc.createElement("listaPlanes")
+            inv_el.appendChild(lplanes)
+
+            #recorrer planes del inevrnadero
+            for plan in inv.planes.iterar():
+                stats, timeline = self.sim.simular(inv, plan)
+
+                plan_el = doc.createElement("plan")
+                plan_el.setAttribute("nombre", plan.nombre)
+                lplanes.appendChild(plan_el)
+
+                self.agregar_texto(doc, plan_el, "tiempoOptimoSegundos", stats.tiempo_optimo_seg)
+                self.agregar_texto(doc, plan_el, "aguaRequeridaLitros", stats.agua_total_l)
+                self.agregar_texto(doc, plan_el, "fertilizanteRequeridoGramos", stats.fert_total_g)
+
+                #eficienciia por dron
+                eff = doc.createElement("eficienciaDronesRegadores")
+                plan_el.appendChild(eff)
+                for ed in stats.por_dron.iterar():
+                    d_el = doc.createElement("dron")
+                    d_el.setAttribute("nombre", ed.nombre)
+                    d_el.setAttribute("litrosAgua", str(ed.litros))
+                    d_el.setAttribute("gramosFertilizante", str(ed.gramos))
+                    eff.appendChild(d_el)
+
+                # Instrucciones por tiempo
+                insts = doc.createElement("instrucciones")
+                plan_el.appendChild(insts)
+                for paso in timeline.iterar():
+                    t_el = doc.createElement("tiempo")
+                    t_el.setAttribute("segundos", str(paso.segundo))
+                    insts.appendChild(t_el)
+
+                    # cada accion viene como "DR01 Adelante (H1P1)"
+                    for acc in paso.acciones_por_dron.iterar():
+                        nombre = acc
+                        accion = ""
+                        idx = -1
+                        # buscar primera separacion por espacio
+                        j = 0
+                        while j < len(acc):
+                            if acc[j] == " ":
+                                idx = j
+                                break
+                            j += 1
+                        if idx > 0:
+                            nombre = acc[:idx]
+                            accion = acc[idx+1:].strip()
+                        d_el = doc.createElement("dron")
+                        d_el.setAttribute("nombre", nombre)
+                        d_el.setAttribute("accion", accion)
+                        t_el.appendChild(d_el)
+        xml_str = doc.toprettyxml(indent= "  ", encoding="utf-8")
+        with open(ruta, "wb") as f:
+            f.write(xml_str)                
