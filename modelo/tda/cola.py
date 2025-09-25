@@ -8,7 +8,7 @@ class cola:
         self._datos.insertar_final(v)
 
     def desencolar(self):
-        if self._datos.esta_vacia():
+        if self.esta_vacia():
             return None
         nodo = self._datos.cabeza
         self._datos.cabeza = nodo.siguiente
@@ -16,6 +16,7 @@ class cola:
             self._datos.cola = None
         self._datos._len -= 1
         return nodo.valor
+
 
     def frente(self):
         return None if self._datos.esta_vacia() else self._datos.cabeza.valor

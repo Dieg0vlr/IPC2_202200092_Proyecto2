@@ -28,7 +28,7 @@ class lista_simple:
             raise IndexError("Indice fuera de rango")
         i = 0
         actual = self.cabeza
-        while actual is None:
+        while actual is not None:
             if i == idx:
                 return actual.valor
             i +=1
