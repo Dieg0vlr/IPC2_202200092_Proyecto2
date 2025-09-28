@@ -109,6 +109,25 @@ TPL_HOME = """
         .back-button:hover {
             background-color: #e53935;
         }
+
+        .message {
+            background-color: #eaf7ea;
+            border: 1px solid #cfe7d1;
+            color: #3c763d;
+            padding: 12px;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
     </style>
 </head>
 <body>
@@ -129,24 +148,17 @@ TPL_HOME = """
             <button type="submit">Simular</button>
         </form>
 
-                <form method="get" action="/reporte">
-            <h2>Reporte HTML</h2>
-            <input name="inv" placeholder="Nombre del invernadero" required>
-            <input name="plan" placeholder="Nombre del plan de riego" required>
-            <button type="submit">Generar Reporte HTML</button>
-        </form>
-
-        <form method="get" action="/grafo">
-            <h2>Graphviz (.dot)</h2>
-            <input name="inv" placeholder="Nombre del invernadero" required>
-            <input name="plan" placeholder="Nombre del plan de riego" required>
-            <input name="t" type="number" min="0" placeholder="Segundo t (opcional)">
-            <button type="submit">Generar .dot</button>
-        </form>
-
         <form method="get" action="/salida">
             <button type="submit">Generar Salida XML</button>
         </form>
+
+         {% if mensaje %}
+        <div class="message {% if 'Error' in mensaje %}error-message{% endif %}">
+            {{ mensaje }}
+        </div>
+        {% endif %}
+
+
     </div>
 
 
@@ -296,12 +308,12 @@ def simular():
                 margin-bottom: 20px;
             }
             th, td {
-                padding: 12px 20px; 
-                text-align: center; 
+                padding: 12px 20px;
+                text-align: center;
                 border: 1px solid #ddd;
             }
             th {
-                background-color: #f2f2f2; 
+                background-color: #f2f2f2;
                 color: #333;
             }
             td {
@@ -309,7 +321,7 @@ def simular():
                 color: #333;
             }
             tr:hover {
-                background-color: #f1f1f1; 
+                background-color: #f1f1f1;
             }
             .back-button {
                 display: inline-block;
@@ -344,6 +356,15 @@ def simular():
                     """ + filas_html + """
                 </tbody>
             </table>
+            <div>
+                <a class="back-button" href="/reporte?inv=""" + inv.nombre + """&plan=""" + plan.nombre + """">Ver Reporte HTML</a>
+            </div>
+            <form method="get" action="/grafo" style="margin-top:10px;">
+                <input type="hidden" name="inv" value=\"""" + inv.nombre + """\">
+                <input type="hidden" name="plan" value=\"""" + plan.nombre + """\">
+                <input type="number" name="t" min="0" placeholder="Segundo t">
+                <button type="submit">Generar Graphviz (.dot)</button>
+            </form>
             <a href="/" class="back-button">Volver</a>
         </div>
     </body>
@@ -353,16 +374,22 @@ def simular():
 
 
 
+
 @app.get("/salida")
 def salida():
     ruta_salida = "salida.xml"
     
-    GX.generar_salida(ruta_salida, SYS.invernaderos)
-    
-    if not os.path.exists(ruta_salida):
-        return "Error: el archivo salida.xml no se ha generado correctamente", 500
-    
-    return send_file(ruta_salida, as_attachment=True)
+    try:
+        GX.generar_salida(ruta_salida, SYS.invernaderos)
+        
+        mensaje = "¡Archivo XML generado correctamente! Se guardó en: " + ruta_salida
+        
+        return render_template_string(TPL_HOME, mensaje=mensaje)
+
+    except Exception as e:
+        mensaje = f"Error al generar el archivo XML: {str(e)}"
+        return render_template_string(TPL_HOME, mensaje=mensaje)
+
 
 
 @app.get("/reporte")
